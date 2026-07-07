@@ -1,5 +1,11 @@
+import Navbar from "../components/Navbar";
+
 function Home() {
-    return <h1>Home</h1>
+  return (
+    <div className="min-h-screen bg-slate-950">
+      <Navbar />
+    </div>
+  );
 }
 
 export default Home;
