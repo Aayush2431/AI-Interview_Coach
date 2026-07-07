@@ -1,22 +1,22 @@
 import Button from "./Button";
+import { Link } from "react-router-dom";
 
 function Navbar() {
   return (
-    <nav className="w-full bg-slate-900 text-white shadow-md">
+    <nav className="sticky w-full bg-slate-900 text-white shadow-md">
       <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-4">
 
         {/* Logo */}
         <div>
-          <h1 className="text-2xl font-bold text-blue-500">
+          <Link to="/" className="text-2xl font-bold text-blue-500">
             AI Interview Coach
-          </h1>
+          </Link>
         </div>
 
         {/* Navigation Links */}
         <div className="hidden md:flex gap-8">
-          <a href="#" className="hover:text-blue-400 transition">
-            Features
-          </a>
+          
+        <Link to="/">Features</Link>
 
           <a href="#" className="hover:text-blue-400 transition">
             About
