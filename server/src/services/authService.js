@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import User from "../models/User.js";
+import jwt from "jsonwebtoken";
 
 export const registerService = async ({ name, email, password }) => {
   const existingUser = await User.findOne({ email });
@@ -38,9 +39,23 @@ export const loginService = async ({ email, password }) => {
     throw new Error("Invalid email or password");
   }
 
-  return {
+  const token = jwt.sign(
+  {
+    userId: user._id,
+    email: user.email,
+  },
+  process.env.JWT_SECRET,
+  {
+    expiresIn: process.env.JWT_EXPIRES_IN,
+  }
+);
+
+return {
+  token,
+  user: {
     id: user._id,
     name: user.name,
     email: user.email,
-  };
+  },
+};
 };
