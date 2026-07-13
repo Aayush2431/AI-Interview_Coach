@@ -32,7 +32,12 @@ const resumeSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
-    
+
+    parsedData: {
+      type: Object,
+      default: {},
+    },
+
   },
   {
     timestamps: true,
