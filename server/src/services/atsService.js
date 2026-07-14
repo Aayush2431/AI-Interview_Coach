@@ -1,4 +1,5 @@
 import { EXPECTED_SKILLS } from "../config/atsKeywords.js";
+import { SKILL_ALIASES } from "../utils/skillAliases.js";
 
 /**
  * Generates complete ATS report
@@ -90,28 +91,47 @@ function evaluateSkills(parsedData) {
   const weakSections = [];
   const suggestions = [];
 
-  const resumeSkills = (parsedData.skills || []).map((skill) =>
-    skill.toLowerCase().trim()
-  );
+  // Convert the complete parsed resume into searchable text
+  const searchableText = JSON.stringify(parsedData).toLowerCase();
 
-  const matchedSkills = EXPECTED_SKILLS.filter((skill) =>
-    resumeSkills.includes(skill.toLowerCase())
-  );
+  const matchedSkills = [];
+  const missingKeywords = [];
 
-  const missingKeywords = EXPECTED_SKILLS.filter(
-    (skill) => !resumeSkills.includes(skill.toLowerCase())
-  );
+  EXPECTED_SKILLS.forEach((expectedSkill) => {
+    const aliases =
+      SKILL_ALIASES[expectedSkill.toLowerCase()] || [
+        expectedSkill.toLowerCase(),
+      ];
 
+    const found = aliases.some((alias) =>
+      searchableText.includes(alias.toLowerCase())
+    );
+
+    if (found) {
+      matchedSkills.push(expectedSkill);
+    } else {
+      missingKeywords.push(expectedSkill);
+    }
+  });
+
+  // Calculate score
   const score = Math.round(
     (matchedSkills.length / EXPECTED_SKILLS.length) * 30
   );
 
-  if (matchedSkills.length >= 8) {
-    strengths.push("Strong Technical Skills");
+  // Strengths
+  if (matchedSkills.length >= 15) {
+    strengths.push("Strong Technical Skill Set");
+  } else if (matchedSkills.length >= 8) {
+    strengths.push("Good Technical Skill Coverage");
   } else {
     weakSections.push("Technical Skills");
+  }
+
+  // Suggestions
+  if (missingKeywords.length > 0) {
     suggestions.push(
-      "Include more relevant technical skills for software engineering roles."
+      "Include more industry-relevant technologies in your resume."
     );
   }
 
@@ -120,7 +140,7 @@ function evaluateSkills(parsedData) {
     strengths,
     weakSections,
     missingKeywords,
-    suggestions
+    suggestions,
   };
 }
 

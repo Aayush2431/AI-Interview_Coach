@@ -7,7 +7,7 @@ import { generateATSReport } from "../services/atsService.js";
  */
 export const uploadResume = async (req, res) => {
   try {
-    const resume = await uploadResumeService(req.user.userId, req.file);
+    const resume = await uploadResumeService(req.user.id, req.file);
 
     res.status(201).json({
       success: true,

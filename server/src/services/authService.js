@@ -1,16 +1,20 @@
 import bcrypt from "bcryptjs";
-import User from "../models/User.js";
 import jwt from "jsonwebtoken";
+import User from "../models/User.js";
 
+// Register Service
 export const registerService = async ({ name, email, password }) => {
+  // Check if user already exists
   const existingUser = await User.findOne({ email });
 
   if (existingUser) {
     throw new Error("User already exists");
   }
 
+  // Hash password
   const hashedPassword = await bcrypt.hash(password, 10);
 
+  // Create new user
   const user = await User.create({
     name,
     email,
@@ -24,38 +28,50 @@ export const registerService = async ({ name, email, password }) => {
   };
 };
 
+// Login Service
 export const loginService = async ({ email, password }) => {
-  // Check if user exists
+  // Find user
   const user = await User.findOne({ email });
 
   if (!user) {
     throw new Error("Invalid email or password");
   }
 
-  // Compare entered password with hashed password
-  const isPasswordMatch = await bcrypt.compare(password, user.password);
+  // Compare password
+  const isMatch = await bcrypt.compare(password, user.password);
 
-  if (!isPasswordMatch) {
+  if (!isMatch) {
     throw new Error("Invalid email or password");
   }
 
+  // Generate JWT
   const token = jwt.sign(
-  {
-    userId: user._id,
-    email: user.email,
-  },
-  process.env.JWT_SECRET,
-  {
-    expiresIn: process.env.JWT_EXPIRES_IN,
-  }
-);
+    {
+      id: user._id,
+    },
+    process.env.JWT_SECRET,
+    {
+      expiresIn: "7d",
+    }
+  );
 
-return {
-  token,
-  user: {
-    id: user._id,
-    name: user.name,
-    email: user.email,
-  },
+  return {
+    token,
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+    },
+  };
 };
+
+// Get Profile Service
+export const getProfileService = async (userId) => {
+  const user = await User.findById(userId).select("-password");
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  return user;
 };
