@@ -1,56 +1,227 @@
 import { GoogleGenAI } from "@google/genai";
 
+const MODEL = "gemini-3.5-flash";
+
+/**
+ * ---------------------------------------------------
+ * Lazy Gemini Client
+ * ---------------------------------------------------
+ */
+
+let ai = null;
+
+const getGeminiClient = () => {
+  if (!ai) {
+    ai = new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY,
+    });
+  }
+
+  return ai;
+};
+
+
+/**
+ * ---------------------------------------------------
+ * Generic Gemini JSON Generator
+ * ---------------------------------------------------
+ */
+
+export const generateStructuredJson = async (prompt) => {
+  const ai = getGeminiClient();
+
+  const MAX_RETRIES = 3;
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const response = await ai.models.generateContent({
+        model: MODEL,
+        contents: prompt,
+      });
+
+      const cleanedText = response.text
+        .replace(/```json/g, "")
+        .replace(/```/g, "")
+        .trim();
+
+      return JSON.parse(cleanedText);
+
+    } catch (error) {
+        console.error("=================================");
+        console.error("Gemini Attempt:", attempt);
+        console.error("Status:", error.status);
+        console.error("Message:", error.message);
+        console.error("Full Error:", error);
+        console.error("=================================");
+
+        if (attempt === MAX_RETRIES) {
+          throw error;
+        }
+
+        await new Promise((resolve) =>
+          setTimeout(resolve, attempt * 2000)
+        );
+      }
+  }
+};
+
+/**
+ * ---------------------------------------------------
+ * Resume Parser
+ * ---------------------------------------------------
+ */
+
 export const parseResumeWithGemini = async (resumeText) => {
 
-  const ai = new GoogleGenAI({
-    apiKey: process.env.GEMINI_API_KEY,
-  });
-
-
-
   const prompt = `
-You are an expert resume parser.
-
-Analyze the resume below and return ONLY valid JSON.
-
-Do not include markdown.
-Do not include explanation.
-Do not wrap the JSON inside \`\`\`.
-
-Return exactly this structure:
+Return ONLY JSON.
 
 {
-  "name": "",
-  "email": "",
-  "phone": "",
-  "skills": [],
-  "education": [],
-  "experience": [],
-  "projects": []
+  "technical": [
+    {
+      "id": 1,
+      "question": "What is React?",
+      "difficulty": "Easy"
+    }
+  ]
 }
-
-Resume:
-
-${resumeText}
 `;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3.5-flash",
-    contents: prompt,
-  });
+  return await generateStructuredJson(prompt);
+};
 
-  // Clean Gemini response
-const cleanedText = response.text
-  .replace(/```json/g, "")
-  .replace(/```/g, "")
-  .trim();
+/**
+ * ---------------------------------------------------
+ * Interview Question Generator
+ * ---------------------------------------------------
+ */
 
-try {
-  return JSON.parse(cleanedText);
-} catch (error) {
-  console.error("Gemini returned invalid JSON:");
-  console.error(cleanedText);
+export const generateInterviewQuestionsWithGemini =
+async (parsedResume) => {
 
-  throw new Error("Failed to parse Gemini response into JSON.");
+  const prompt = `
+You are a Senior Software Engineer conducting technical interviews.
+
+Based on the candidate's resume, generate interview questions.
+
+Generate:
+
+- 5 Technical Questions
+
+- 3 Project Questions
+
+- 2 HR Questions
+
+- 2 Behavioral Questions
+
+Return ONLY JSON.
+
+Format:
+
+{
+  "technical":[
+    {
+      "id":1,
+      "question":"",
+      "difficulty":"Easy"
+    }
+  ],
+  "projects":[
+    {
+      "id":6,
+      "question":"",
+      "difficulty":"Medium"
+    }
+  ],
+  "hr":[
+    {
+      "id":9,
+      "question":"",
+      "difficulty":"Easy"
+    }
+  ],
+  "behavioral":[
+    {
+      "id":11,
+      "question":"",
+      "difficulty":"Medium"
+    }
+  ]
 }
+
+Candidate Resume:
+
+${JSON.stringify(parsedResume, null, 2)}
+
+Return ONLY JSON.
+`;
+
+  console.log("Prompt Length:", prompt.length);
+
+  return await generateStructuredJson(prompt);
+
+};
+
+/**
+ * ---------------------------------------------------
+ * Interview Answer Evaluation
+ * ---------------------------------------------------
+ */
+
+export const evaluateInterviewAnswerWithGemini =
+async (question, answer) => {
+
+  const prompt = `
+You are a Senior Software Engineer interviewing a candidate.
+
+Evaluate the following answer.
+
+Question:
+
+${question}
+
+Candidate Answer:
+
+${answer}
+
+Evaluate:
+
+- Technical Accuracy
+
+- Communication
+
+- Confidence
+
+- Completeness
+
+- Practical Knowledge
+
+Return ONLY JSON.
+
+Format:
+
+{
+  "overallScore":0,
+  "technicalAccuracy":0,
+  "communication":0,
+  "confidence":0,
+  "completeness":0,
+  "strengths":[],
+  "improvements":[],
+  "idealAnswer":""
+}
+
+Rules:
+
+overallScore must be between 0 and 10.
+
+All scores must be between 0 and 10.
+
+Return ONLY JSON.
+
+No markdown.
+`;
+
+  return await generateStructuredJson(prompt);
+
 };
