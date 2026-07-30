@@ -48,7 +48,10 @@ export const getATSReport = async (req, res) => {
     }
 
     // Generate ATS Report
-    const atsReport = await generateATSReport(resume.parsedData);
+    const atsReport = await generateATSReport(
+      resume.parsedData,
+      resume.parsedText
+    );
 
     return res.status(200).json({
       success: true,

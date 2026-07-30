@@ -1,17 +1,41 @@
-import { EXPECTED_SKILLS } from "../config/atsKeywords.js";
-import { SKILL_ALIASES } from "../utils/skillAliases.js";
+import {
+  buildResumeText,
+} from "../utils/ats/resumeNormalizer.js";
+
+import {
+  detectSkills,
+} from "../utils/ats/skillDetector.js";
+
+import {
+  calculateSkillScore,
+  calculateCoverage,
+} from "../utils/ats/scoreCalculator.js";
+
+import {
+  generateSkillSuggestions,
+} from "../utils/ats/suggestionGenerator.js";
 
 /**
  * Generates complete ATS report
  */
-export const generateATSReport = async (parsedData) => {
+
+export const generateATSReport = async (
+  parsedData,
+  parsedText = ""
+) => {
   const report = {
     score: 0,
     strengths: [],
     weakSections: [],
     missingKeywords: [],
-    suggestions: []
+    suggestions: [],
+    coverage: {},
   };
+
+  const resumeText = buildResumeText(
+    parsedData,
+    parsedText
+  );
 
   const evaluators = [
     evaluateContact,
@@ -19,26 +43,53 @@ export const generateATSReport = async (parsedData) => {
     evaluateProjects,
     evaluateExperience,
     evaluateEducation,
-    evaluateCompleteness
+    evaluateCompleteness,
   ];
 
   evaluators.forEach((evaluator) => {
-    const result = evaluator(parsedData);
+    const result = evaluator(
+      parsedData,
+      resumeText
+    );
 
     report.score += result.score;
 
-    report.strengths.push(...result.strengths);
-    report.weakSections.push(...result.weakSections);
-    report.missingKeywords.push(...result.missingKeywords);
-    report.suggestions.push(...result.suggestions);
+    report.strengths.push(
+      ...result.strengths
+    );
+
+    report.weakSections.push(
+      ...result.weakSections
+    );
+
+    report.missingKeywords.push(
+      ...result.missingKeywords
+    );
+
+    report.suggestions.push(
+      ...result.suggestions
+    );
+
+    if (result.coverage) {
+      report.coverage = result.coverage;
+    }
   });
 
   report.score = Math.min(report.score, 100);
 
   report.strengths = [...new Set(report.strengths)];
-  report.weakSections = [...new Set(report.weakSections)];
-  report.missingKeywords = [...new Set(report.missingKeywords)];
-  report.suggestions = [...new Set(report.suggestions)];
+
+  report.weakSections = [
+    ...new Set(report.weakSections),
+  ];
+
+  report.missingKeywords = [
+    ...new Set(report.missingKeywords),
+  ];
+
+  report.suggestions = [
+    ...new Set(report.suggestions),
+  ];
 
   return report;
 };
@@ -47,6 +98,7 @@ export const generateATSReport = async (parsedData) => {
  * CONTACT INFORMATION
  * Weight = 10
  */
+
 function evaluateContact(parsedData) {
   let score = 0;
 
@@ -78,7 +130,7 @@ function evaluateContact(parsedData) {
     strengths,
     weakSections,
     missingKeywords: [],
-    suggestions
+    suggestions,
   };
 }
 
@@ -86,52 +138,44 @@ function evaluateContact(parsedData) {
  * SKILLS
  * Weight = 30
  */
-function evaluateSkills(parsedData) {
+
+function evaluateSkills(
+  parsedData,
+  resumeText
+) {
   const strengths = [];
   const weakSections = [];
-  const suggestions = [];
 
-  // Convert the complete parsed resume into searchable text
-  const searchableText = JSON.stringify(parsedData).toLowerCase();
+  const {
+    matchedSkills,
+    missingSkills,
+  } = detectSkills(resumeText);
 
-  const matchedSkills = [];
-  const missingKeywords = [];
-
-  EXPECTED_SKILLS.forEach((expectedSkill) => {
-    const aliases =
-      SKILL_ALIASES[expectedSkill.toLowerCase()] || [
-        expectedSkill.toLowerCase(),
-      ];
-
-    const found = aliases.some((alias) =>
-      searchableText.includes(alias.toLowerCase())
+  const score =
+    calculateSkillScore(
+      matchedSkills.length
     );
 
-    if (found) {
-      matchedSkills.push(expectedSkill);
-    } else {
-      missingKeywords.push(expectedSkill);
-    }
-  });
+  const coverage =
+    calculateCoverage(
+      matchedSkills.length
+    );
 
-  // Calculate score
-  const score = Math.round(
-    (matchedSkills.length / EXPECTED_SKILLS.length) * 30
-  );
-
-  // Strengths
-  if (matchedSkills.length >= 15) {
-    strengths.push("Strong Technical Skill Set");
-  } else if (matchedSkills.length >= 8) {
-    strengths.push("Good Technical Skill Coverage");
+  if (
+    coverage.percentage >= 60
+  ) {
+    strengths.push(
+      "Strong Technical Skill Set"
+    );
+  } else if (
+    coverage.percentage >= 35
+  ) {
+    strengths.push(
+      "Good Technical Skill Coverage"
+    );
   } else {
-    weakSections.push("Technical Skills");
-  }
-
-  // Suggestions
-  if (missingKeywords.length > 0) {
-    suggestions.push(
-      "Include more industry-relevant technologies in your resume."
+    weakSections.push(
+      "Technical Skills"
     );
   }
 
@@ -139,8 +183,12 @@ function evaluateSkills(parsedData) {
     score,
     strengths,
     weakSections,
-    missingKeywords,
-    suggestions,
+    missingKeywords: missingSkills,
+    suggestions:
+      generateSkillSuggestions(
+        missingSkills
+      ),
+    coverage,
   };
 }
 
@@ -148,6 +196,7 @@ function evaluateSkills(parsedData) {
  * PROJECTS
  * Weight = 20
  */
+
 function evaluateProjects(parsedData) {
   let score = 0;
 
@@ -155,16 +204,25 @@ function evaluateProjects(parsedData) {
   const weakSections = [];
   const suggestions = [];
 
-  const count = parsedData.projects?.length || 0;
+  const count =
+    parsedData.projects?.length || 0;
 
-  if (count >= 3) score = 20;
-  else if (count === 2) score = 15;
-  else if (count === 1) score = 10;
+  if (count >= 3)
+    score = 20;
+  else if (count === 2)
+    score = 15;
+  else if (count === 1)
+    score = 10;
 
   if (count >= 2) {
-    strengths.push("Strong Project Portfolio");
+    strengths.push(
+      "Strong Project Portfolio"
+    );
   } else {
-    weakSections.push("Projects");
+    weakSections.push(
+      "Projects"
+    );
+
     suggestions.push(
       "Add more real-world projects demonstrating your skills."
     );
@@ -175,7 +233,7 @@ function evaluateProjects(parsedData) {
     strengths,
     weakSections,
     missingKeywords: [],
-    suggestions
+    suggestions,
   };
 }
 
@@ -183,6 +241,7 @@ function evaluateProjects(parsedData) {
  * EXPERIENCE
  * Weight = 20
  */
+
 function evaluateExperience(parsedData) {
   let score = 0;
 
@@ -190,15 +249,23 @@ function evaluateExperience(parsedData) {
   const weakSections = [];
   const suggestions = [];
 
-  const count = parsedData.experience?.length || 0;
+  const count =
+    parsedData.experience?.length || 0;
 
-  if (count >= 2) score = 20;
-  else if (count === 1) score = 10;
+  if (count >= 2)
+    score = 20;
+  else if (count === 1)
+    score = 10;
 
   if (count > 0) {
-    strengths.push("Industry Experience");
+    strengths.push(
+      "Industry Experience"
+    );
   } else {
-    weakSections.push("Experience");
+    weakSections.push(
+      "Experience"
+    );
+
     suggestions.push(
       "Gain internship, freelance, or open-source experience."
     );
@@ -209,7 +276,7 @@ function evaluateExperience(parsedData) {
     strengths,
     weakSections,
     missingKeywords: [],
-    suggestions
+    suggestions,
   };
 }
 
@@ -217,18 +284,27 @@ function evaluateExperience(parsedData) {
  * EDUCATION
  * Weight = 10
  */
+
 function evaluateEducation(parsedData) {
+  let score = 0;
+
   const strengths = [];
   const weakSections = [];
   const suggestions = [];
 
-  let score = 0;
-
-  if (parsedData.education?.length > 0) {
+  if (
+    parsedData.education?.length > 0
+  ) {
     score = 10;
-    strengths.push("Educational Qualification Present");
+
+    strengths.push(
+      "Educational Qualification Present"
+    );
   } else {
-    weakSections.push("Education");
+    weakSections.push(
+      "Education"
+    );
+
     suggestions.push(
       "Include your educational qualifications."
     );
@@ -239,7 +315,7 @@ function evaluateEducation(parsedData) {
     strengths,
     weakSections,
     missingKeywords: [],
-    suggestions
+    suggestions,
   };
 }
 
@@ -247,7 +323,10 @@ function evaluateEducation(parsedData) {
  * COMPLETENESS
  * Weight = 10
  */
-function evaluateCompleteness(parsedData) {
+
+function evaluateCompleteness(
+  parsedData
+) {
   const strengths = [];
   const weakSections = [];
   const suggestions = [];
@@ -259,19 +338,28 @@ function evaluateCompleteness(parsedData) {
     parsedData.skills?.length,
     parsedData.projects?.length,
     parsedData.education?.length,
-    parsedData.experience?.length
+    parsedData.experience?.length,
   ];
 
-  const completedSections = sections.filter(Boolean).length;
+  const completed =
+    sections.filter(Boolean)
+      .length;
 
   const score = Math.round(
-    (completedSections / sections.length) * 10
+    (completed /
+      sections.length) *
+      10
   );
 
   if (score >= 8) {
-    strengths.push("Well Structured Resume");
+    strengths.push(
+      "Well Structured Resume"
+    );
   } else {
-    weakSections.push("Resume Completeness");
+    weakSections.push(
+      "Resume Completeness"
+    );
+
     suggestions.push(
       "Complete all major sections of your resume."
     );
@@ -282,6 +370,6 @@ function evaluateCompleteness(parsedData) {
     strengths,
     weakSections,
     missingKeywords: [],
-    suggestions
+    suggestions,
   };
 }
