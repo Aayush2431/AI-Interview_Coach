@@ -4,40 +4,45 @@ import DashboardNavbar from "../components/dashboard/DashboardNavbar";
 import WelcomeCard from "../components/dashboard/WelcomeCard";
 import UploadResumeCard from "../components/dashboard/UploadResumeCard";
 import ATSReportCard from "../components/dashboard/ATSReportCard";
-// import InterviewCard from "../components/dashboard/InterviewCard";
+import InterviewCard from "../components/dashboard/InterviewCard";
 
 const Dashboard = () => {
-  // Shared state across dashboard components
   const [resumeId, setResumeId] = useState(null);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900">
+    <div className="min-h-screen bg-gray-100">
 
-      {/* Navbar */}
       <DashboardNavbar />
 
-      {/* Main Dashboard Content */}
-      <div className="max-w-7xl mx-auto px-6 md:px-8 py-10 space-y-8">
+      <div className="max-w-6xl mx-auto p-6">
 
-        {/* Welcome Section */}
         <WelcomeCard />
 
-        {/* Resume Upload */}
-        <UploadResumeCard setResumeId={setResumeId} />
+        <div className="grid gap-6">
 
-        {/* Uncomment after creating ATSReportCard */}
+          <UploadResumeCard
+            setResumeId={setResumeId}
+          />
 
-        
-        <ATSReportCard resumeId={resumeId} />
-        
+          <ATSReportCard
+            resumeId={resumeId}
+          />
 
-        {/* Uncomment after creating InterviewCard */}
+          <InterviewCard
+            resumeId={resumeId}
+          />
 
-        {/*
-        <InterviewCard
-          resumeId={resumeId}
-        />
-        */}
+          {/* <button
+            onClick={() => {
+              console.log("TEST BUTTON CLICKED");
+              alert("Working");
+            }}
+            className="bg-red-500 text-white p-4 rounded"
+          >
+            Test Button
+          </button> */}
+
+        </div>
 
       </div>
 
