@@ -32,7 +32,7 @@ function Hero() {
 
             <div className="flex gap-4 mt-8">
                 <Button 
-                  onClick={() => navigate("/signup")}
+                  onClick={() => navigate("/register")}
                   className="bg-blue-600 text-white hover:bg-blue-700">
                     Get Started
                 </Button>
