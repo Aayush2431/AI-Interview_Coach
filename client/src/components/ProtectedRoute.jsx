@@ -4,16 +4,18 @@ import { useAuth } from "../context/AuthContext";
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
 
-  // Wait until authentication check finishes
+  // Wait until authentication status is determined
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <h2 className="text-xl font-semibold">Loading...</h2>
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <p className="text-white text-lg">
+          Loading...
+        </p>
       </div>
     );
   }
 
-  // If not logged in, redirect to login
+  // User is not logged in
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }

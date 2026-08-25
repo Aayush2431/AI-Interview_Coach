@@ -9,6 +9,14 @@ import InterviewCard from "../components/dashboard/InterviewCard";
 const Dashboard = () => {
   const [resumeId, setResumeId] = useState(null);
 
+  const handleGenerateInterview = () => {
+    document
+      .getElementById("interview-section")
+      ?.scrollIntoView({
+        behavior: "smooth",
+      });
+  };
+
   return (
     <div className="min-h-screen bg-gray-100">
 
@@ -20,27 +28,23 @@ const Dashboard = () => {
 
         <div className="grid gap-6">
 
+          {/* Resume Upload */}
           <UploadResumeCard
             setResumeId={setResumeId}
           />
 
+          {/* ATS Analysis */}
           <ATSReportCard
             resumeId={resumeId}
+            onGenerateInterview={handleGenerateInterview}
           />
 
-          <InterviewCard
-            resumeId={resumeId}
-          />
-
-          {/* <button
-            onClick={() => {
-              console.log("TEST BUTTON CLICKED");
-              alert("Working");
-            }}
-            className="bg-red-500 text-white p-4 rounded"
-          >
-            Test Button
-          </button> */}
+          {/* Interview */}
+          <div id="interview-section">
+            <InterviewCard
+              resumeId={resumeId}
+            />
+          </div>
 
         </div>
 

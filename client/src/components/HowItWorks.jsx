@@ -21,7 +21,9 @@ function HowItWorks() {
   ];
 
   return (
-    <section className="bg-slate-900 text-white py-24">
+    <section 
+    id="how-it-works"
+    className="bg-slate-900 text-white py-24">
       <div className="max-w-7xl mx-auto px-6">
 
         <div className="text-center">
